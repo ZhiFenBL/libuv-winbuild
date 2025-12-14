@@ -41,7 +41,7 @@ jobs:
       - name: Setup Python (for Documentation)
         uses: actions/setup-python@v6
         with:
-          python-version: '3.13' # Imhdr is removed in 3.14 (which's needed for all docs)
+          python-version: '3.14'
 
       - name: Build Binaries (CMake)
         working-directory: libuv_root
@@ -54,7 +54,9 @@ jobs:
 
       - name: Install Doc Dependencies
         working-directory: libuv_root/docs
+        # imhdr was removed in python 3.13 (https://peps.python.org/pep-0594/#imghdr) So we're manually installing it.
         run: |
+          pip install standard-imghdr 
           pip install -r requirements.txt
 
       - name: Build Documentation
