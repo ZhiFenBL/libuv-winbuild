@@ -1,0 +1,78 @@
+name: Release Libuv
+
+on:
+  push:
+    tags:
+      - "*.*.*" # Triggers on tags like 1.48.0
+
+permissions:
+  contents: write # Required to upload assets to releases
+
+jobs:
+  build-and-release:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash # Using bash on Windows for easier string interpolation and curl
+
+    steps:
+      - name: Checkout (for workflow access)
+        uses: actions/checkout@v5
+
+      - name: Set Version Environment Variable
+        run: echo "VERSION=${GITHUB_REF_NAME}" >> $GITHUB_ENV
+
+      - name: Download and Extract libuv Source
+        run: |
+          echo "Downloading libuv v${VERSION}..."
+          URL="https://dist.libuv.org/dist/v${VERSION}/libuv-v${VERSION}-dist.tar.gz"
+          curl -L -o libuv.tar.gz "$URL"
+          
+          # Extract and rename folder to 'libuv_root' for easier reference
+          tar -xzf libuv.tar.gz
+          mv libuv-v${VERSION} libuv_root
+
+      - name: Setup Python (for Documentation)
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.14'
+
+      - name: Build Binaries (CMake)
+        working-directory: libuv_root
+        run: |
+          # Configure
+          cmake -B build -DBUILD_TESTING=OFF
+          
+          # Build
+          cmake --build build
+
+      - name: Install Doc Dependencies
+        working-directory: libuv_root/docs
+        run: |
+          pip install -r requirements.txt
+
+      - name: Build Documentation
+        working-directory: libuv_root/docs
+        shell: cmd # make.bat is a batch script, best run in cmd
+        run: |
+          call make.bat html
+          call make.bat man
+          call make.bat epub
+
+      - name: Prepare Release Artifact
+        shell: pwsh
+        run: |
+          # Create a clean directory for the release assets
+          New-Item -ItemType Directory -Force -Path release-staging
+          
+          # Copy the entire processed root folder into staging
+          # (Or you can be selective and only copy build/Release and docs/build)
+          Copy-Item -Path libuv_root -Destination release-staging -Recurse
+          
+          # Compress the folder
+          Compress-Archive -Path release-staging\libuv_root -DestinationPath libuv-windows-v${{ env.VERSION }}.zip
+
+      - name: Upload to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: libuv-windows-v${{ env.VERSION }}.zip
