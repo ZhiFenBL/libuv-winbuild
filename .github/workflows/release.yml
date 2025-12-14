@@ -24,19 +24,26 @@ jobs:
 
       - name: Download and Extract libuv Source
         run: |
-          echo "Downloading libuv v${VERSION}..."
-          URL="https://dist.libuv.org/dist/v${VERSION}/libuv-v${VERSION}-dist.tar.gz"
-          curl -L -o libuv.tar.gz "$URL"
+          echo "Downloading libuv source v${VERSION}..."
+          URL="https://github.com/libuv/libuv/archive/refs/tags/v${VERSION}.zip"
+          curl -L -o libuv.zip "$URL"
           
-          # Extract
-          tar -xzf libuv.tar.gz
+          # Extract zip (Windows runners have 7z available in bash)
+          7z x libuv.zip
+          rm libuv.zip
           
-          # Remove the archive so it doesn't interfere with our wildcard match
-          rm libuv.tar.gz
+          # Find the directory (usually 'libuv-1.50.0') and rename
+          # We search for a directory starting with 'libuv-'
+          EXTRACTED_DIR=$(ls -d libuv-*/ | head -n 1)
+          echo "Found source directory: $EXTRACTED_DIR"
+          mv "$EXTRACTED_DIR" libuv_root
           
-          # Move whatever folder starts with 'libuv-' to 'libuv_root'
-          # This handles both 'libuv-v1.50.0' and 'libuv-1.50.0'
-          mv libuv-*/ libuv_root
+          # Verify CMakeLists.txt exists now
+          if [ ! -f "libuv_root/CMakeLists.txt" ]; then
+            echo "::error::CMakeLists.txt still not found! Check the extracted contents."
+            ls -R libuv_root
+            exit 1
+          fi          
           
       - name: Setup Python (for Documentation)
         uses: actions/setup-python@v6
