@@ -38,23 +38,16 @@ jobs:
           echo "Found source directory: $EXTRACTED_DIR"
           mv "$EXTRACTED_DIR" libuv_root
           
-          # Verify CMakeLists.txt exists now
-          if [ ! -f "libuv_root/CMakeLists.txt" ]; then
-            echo "::error::CMakeLists.txt still not found! Check the extracted contents."
-            ls -R libuv_root
-            exit 1
-          fi          
-          
       - name: Setup Python (for Documentation)
         uses: actions/setup-python@v6
         with:
-          python-version: '3.14'
+          python-version: '3.13' # Imhdr is removed in 3.14 (which's needed for all docs)
 
       - name: Build Binaries (CMake)
         working-directory: libuv_root
         run: |
           # Configure
-          cmake -B build -DBUILD_TESTING=OFF
+          cmake -B build
           
           # Build
           cmake --build build
