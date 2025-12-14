@@ -28,10 +28,16 @@ jobs:
           URL="https://dist.libuv.org/dist/v${VERSION}/libuv-v${VERSION}-dist.tar.gz"
           curl -L -o libuv.tar.gz "$URL"
           
-          # Extract and rename folder to 'libuv_root' for easier reference
+          # Extract
           tar -xzf libuv.tar.gz
-          mv libuv-v${VERSION} libuv_root
-
+          
+          # Remove the archive so it doesn't interfere with our wildcard match
+          rm libuv.tar.gz
+          
+          # Move whatever folder starts with 'libuv-' to 'libuv_root'
+          # This handles both 'libuv-v1.50.0' and 'libuv-1.50.0'
+          mv libuv-*/ libuv_root
+          
       - name: Setup Python (for Documentation)
         uses: actions/setup-python@v6
         with:
